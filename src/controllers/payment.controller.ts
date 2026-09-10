@@ -78,3 +78,23 @@ export const getOrderStatusController = async (
     next(error);
   }
 };
+
+export const handleWebhookController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    console.log("=== Cashfree Webhook Received ===");
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Body:", JSON.stringify(req.body, null, 2));
+
+    return res.status(200).json({
+      success: true,
+      message: "Webhook received successfully",
+    });
+  } catch (error) {
+    console.error("Error processing webhook:", error);
+    next(error);
+  }
+};

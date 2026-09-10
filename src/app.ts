@@ -11,7 +11,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health Check Endpoint
-app.get("/health", (_req, res) => {
+app.get("/health", (req, res) => {
+  console.log(`[${new Date().toISOString()}] Health check requested from ${req.ip || req.socket.remoteAddress}`);
   res.json({
     success: true,
     message: "Cashfree backend service is healthy and running",
