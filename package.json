@@ -1,0 +1,24 @@
+{
+  "name": "cashfreeserver",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun src/index.ts --watch",
+    "start": "bun src/index.ts",
+    "build": "echo 'No build needed'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "cashfree-pg": "^6.0.5",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
