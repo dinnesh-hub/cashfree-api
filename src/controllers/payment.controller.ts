@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { createOrderService, getOrderService } from "@/services/cashfree.service";
+import { createOrderService, getOrderService, getPaymentService } from "@/services/cashfree.service";
 import type { CreateOrderRequestBody } from "@/types/payment.types";
 
 export const createOrderController = async (
@@ -70,6 +70,32 @@ export const getOrderStatusController = async (
     return res.status(200).json({
       success: true,
       data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPaymentStatusController = async (
+  req: Request<{ orderId: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId || typeof orderId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID parameter is required",
+      });
+    }
+
+    const payment = await getPaymentService(orderId);
+
+    return res.status(200).json({
+      success: true,
+      data: payment,
     });
   } catch (error) {
     next(error);

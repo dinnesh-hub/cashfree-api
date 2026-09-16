@@ -10,3 +10,8 @@ export const getOrderService = async (orderId: string) => {
   const response = await cashfreeClient.PGFetchOrder(orderId);
   return response.data;
 };
+
+export const getPaymentService = async (orderId: string) => {
+  const response = await cashfreeClient.PGOrderFetchPayments(orderId);
+  return response.data;
+}
