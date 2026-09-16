@@ -187,7 +187,7 @@ export const getUnifiedStatusController = async (
         orderId,
         status: "FAILED",
         isPaid: false,
-        message: latestPayment?.payment_message || "Payment failed. Please try again.",
+        message: latestPayment?.error_details?.error_description || "Payment failed. Please try again.",
       },
     });
   } catch (error) {
