@@ -102,6 +102,100 @@ export const getPaymentStatusController = async (
   }
 };
 
+export const getUnifiedStatusController = async (
+  req: Request<{ orderId: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId || typeof orderId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID parameter is required",
+      });
+    }
+
+    // ONLY fetch payments — this is all you need!
+    const paymentsData = await getPaymentService(orderId);
+    const payments = Array.isArray(paymentsData) ? paymentsData : [];
+
+    // Case 1: No payment attempt was made
+    if (payments.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orderId,
+          status: "FAILED",
+          isPaid: false,
+          message: "No payment attempt was found.",
+        },
+      });
+    }
+
+    // Case 2: SUCCESS
+    const successfulPayment = payments.find((p: any) => p.payment_status === "SUCCESS");
+    if (successfulPayment) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orderId,
+          status: "SUCCESS",
+          isPaid: true,
+          amount: successfulPayment.payment_amount,
+          cfPaymentId: successfulPayment.cf_payment_id,
+          bankReference: successfulPayment.bank_reference,
+          message: "Payment completed successfully!",
+        },
+      });
+    }
+
+    // Case 3: PENDING (Money debited, awaiting bank clearance)
+    const pendingPayment = payments.find((p: any) => p.payment_status === "PENDING");
+    if (pendingPayment) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orderId,
+          status: "PENDING",
+          isPaid: false,
+          amount: pendingPayment.payment_amount,
+          message: "Payment is pending with the bank. If debited, it will reflect shortly.",
+        },
+      });
+    }
+
+    // Case 4: USER_DROPPED (User cancelled in SDK/UPI app)
+    const latestPayment = payments[payments.length - 1];
+    if (latestPayment?.payment_status === "USER_DROPPED") {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orderId,
+          status: "USER_DROPPED",
+          isPaid: false,
+          message: "Payment was cancelled.",
+        },
+      });
+    }
+
+    // Case 5: FAILED (Declined, insufficient funds, etc.)
+    return res.status(200).json({
+      success: true,
+      data: {
+        orderId,
+        status: "FAILED",
+        isPaid: false,
+        message: latestPayment?.payment_message || "Payment failed. Please try again.",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+  
+
 export const handleWebhookController = async (
   req: Request,
   res: Response,
