@@ -32,7 +32,12 @@ export const createOrderController = async (
       order_note: orderNote || "Payment via Mobile App",
       order_tags: {
         checkout_context: "Mobile SDK Integration"
-      }
+      },
+      ...(process.env.CASHFREE_NOTIFY_URL && {
+        order_meta: {
+          notify_url: process.env.CASHFREE_NOTIFY_URL,
+        },
+      }),
     };
 
     const order = await createOrderService(orderPayload);
