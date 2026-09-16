@@ -29,9 +29,6 @@ export const createOrderController = async (
         customer_email: customerEmail,
         customer_phone: customerPhone,
       },
-      order_meta: {
-        return_url: "https://www.cashfree.com/devstudio/preview/pg/web/checkout?order_id={order_id}",
-      },
       order_note: orderNote || "Payment via Mobile App",
       order_tags: {
         checkout_context: "Mobile SDK Integration"
