@@ -1,5 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
-import { createOrderService, getOrderService, getPaymentService } from "@/services/cashfree.service";
+import {
+  createOrderService,
+  getOrderService,
+  getPaymentService,
+  verifyWebhookSignatureService,
+} from "@/services/cashfree.service";
 import type { CreateOrderRequestBody } from "@/types/payment.types";
 
 export const createOrderController = async (
@@ -207,13 +212,74 @@ export const handleWebhookController = async (
   next: NextFunction
 ) => {
   try {
-    console.log("=== Cashfree Webhook Received ===");
-    console.log("Headers:", JSON.stringify(req.headers, null, 2));
-    console.log("Body:", JSON.stringify(req.body, null, 2));
+    const signature = (req.headers["x-webhook-signature"] || req.headers["x-cf-signature"]) as string | undefined;
+    const timestamp = (req.headers["x-webhook-timestamp"] || req.headers["x-cf-timestamp"]) as string | undefined;
+    const rawBody = (req as any).rawBody || (typeof req.body === "string" ? req.body : JSON.stringify(req.body));
+
+    console.log("--- Webhook Verification Debug ---");
+    console.log("Timestamp:", timestamp);
+    console.log("Signature Received:", signature);
+    console.log("RawBody present on req.rawBody:", Boolean((req as any).rawBody));
+    console.log("RawBody (first 100 chars):", rawBody?.slice?.(0, 100));
+
+    if (!signature || !timestamp) {
+      console.warn("⚠️ Webhook rejected: missing signature or timestamp headers");
+      return res.status(400).json({
+        success: false,
+        message: "Missing signature or timestamp headers",
+      });
+    }
+
+    // Verify Cashfree Webhook Signature
+    let webhookEvent: any;
+    try {
+      webhookEvent = verifyWebhookSignatureService(signature, rawBody, timestamp);
+    } catch (verifyError: any) {
+      console.error("❌ Invalid Webhook Signature:", verifyError.message);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid webhook signature",
+      });
+    }
+
+    console.log("✅ Verified Webhook Event Type:", webhookEvent?.type);
+
+    const eventType = webhookEvent?.type;
+    const eventData = webhookEvent?.object?.data;
+
+    // Process different event types
+    switch (eventType) {
+      case "PAYMENT_SUCCESS_WEBHOOK": {
+        const orderId = eventData?.order?.order_id;
+        const paymentId = eventData?.payment?.cf_payment_id;
+        console.log(`🎉 Payment Successful! Order ID: ${orderId}, Payment ID: ${paymentId}`);
+        // TODO: Update your database status to PAID
+        break;
+      }
+
+      case "PAYMENT_FAILED_WEBHOOK": {
+        const orderId = eventData?.order?.order_id;
+        const errorMsg = eventData?.error_details?.error_description;
+        console.log(`❌ Payment Failed! Order ID: ${orderId}, Reason: ${errorMsg}`);
+        // TODO: Update your database status to FAILED
+        break;
+      }
+
+      case "PAYMENT_USER_DROPPED_WEBHOOK": {
+        const orderId = eventData?.order?.order_id;
+        console.log(`⚠️ Payment User Dropped! Order ID: ${orderId}`);
+        // TODO: Mark user abandoned checkout
+        break;
+      }
+
+      default:
+        console.log(`ℹ️ Webhook Event Received: ${eventType}`);
+        break;
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Webhook received successfully",
+      message: "Webhook processed successfully",
     });
   } catch (error) {
     console.error("Error processing webhook:", error);

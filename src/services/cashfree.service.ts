@@ -14,4 +14,12 @@ export const getOrderService = async (orderId: string) => {
 export const getPaymentService = async (orderId: string) => {
   const response = await cashfreeClient.PGOrderFetchPayments(orderId);
   return response.data;
-}
+};
+
+export const verifyWebhookSignatureService = (
+  signature: string,
+  rawBody: string,
+  timestamp: string
+) => {
+  return cashfreeClient.PGVerifyWebhookSignature(signature, rawBody, timestamp);
+};
